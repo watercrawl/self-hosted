@@ -1,1 +1,1 @@
-FROM watercrawl/front
+FROM watercrawl/frontend
