@@ -103,8 +103,10 @@ safe_replace() {
 
     # Escape special characters in replacement string
     local escaped_replace=$(printf '%s' "$replace" | sed 's/[&/]/\\&/g')
-
-    sed -i '' -e "s/^$search=.*/$search=$escaped_replace/" "$file" || { echo -e "${RED}Failed to update $file${NC}"; exit 1; }
+    if[[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' -e "s/^$search=.*/$search=$escaped_replace/" "$file" || { echo -e "${RED}Failed to update $file${NC}"; exit 1; }
+    else
+        sed -i "s/^$search=.*/$search=$escaped_replace/" "$file" || { echo -e "${RED}Failed to update $file${NC}"; exit 1; }
 }
 
 # Function to validate required example files
