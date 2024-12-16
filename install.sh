@@ -138,6 +138,8 @@ validate_env_files() {
 # Parse command line arguments
 REINSTALL=false
 DEBUG=false
+DB_FILE_EXISTS=$([ -f db.env ] && echo "true" || echo "false")
+APP_FILE_EXISTS=$([ -f app.env ] && echo "true" || echo "false")
 
 for arg in "$@"; do
     case $arg in
@@ -205,14 +207,26 @@ done
 
 # Generate secrets and configure app.env
 if [[ -f app.env ]]; then
-    SECRET_KEY=$(generate_random_string 50)
-    safe_replace "app.env" "SECRET_KEY" "$SECRET_KEY"
+    safe_replace "app.env" "ALLOWED_HOSTS" "$WEBSITE_DOMAIN"
+    safe_replace "app.env" "CSRF_TRUSTED_ORIGINS" "$WEBSITE_URL"
+    safe_replace "app.env" "CORS_ALLOWED_ORIGINS" "$WEBSITE_URL"
+
+    if [[ "$DB_FILE_EXISTS" == "true" ]]; then
+        echo -e "\n${YELLOW}app.env already exists. Skipping secret key generation.${NC}"
+    else
+        SECRET_KEY=$(generate_random_string 50)
+        safe_replace "app.env" "SECRET_KEY" "$SECRET_KEY"
+    fi
 fi
 
 if [[ -f db.env ]]; then
-    DB_PASSWORD=$(generate_random_string 16)
-    safe_replace "db.env" "POSTGRES_PASSWORD" "$DB_PASSWORD"
-    safe_replace "app.env" "DATABASE_URL" "postgresql://postgres:$DB_PASSWORD@postgres:5432/postgres"
+    if [[ "$APP_FILE_EXISTS" == "true" ]]; then
+        echo -e "\n${YELLOW}db.env already exists. Skipping password generation.${NC}"
+    else
+        DB_PASSWORD=$(generate_random_string 16)
+        safe_replace "db.env" "POSTGRES_PASSWORD" "$DB_PASSWORD"
+        safe_replace "app.env" "DATABASE_URL" "postgresql://postgres:$DB_PASSWORD@postgres:5432/postgres"
+    fi
 fi
 
 # if [[ -f minio.env ]]; then
@@ -225,7 +239,7 @@ fi
 # fi
 
 if [[ -f frontend.env ]]; then
-    safe_replace "frontend.env" "VITE_API_URL" "$WEBSITE_DOMAIN"
+    safe_replace "frontend.env" "VITE_API_URL" "$WEBSITE_URL"
 fi
 
 # Validate environment files
