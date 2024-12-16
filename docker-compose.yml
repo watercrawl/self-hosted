@@ -1,0 +1,78 @@
+x-app: &app
+  build:
+    context: watercrawl
+    dockerfile: Dockerfile
+  env_file:
+    - app.env
+  volumes:
+    - storage_volume:/var/www/storage
+  depends_on:
+    - postgres
+    # - minio
+    
+services:
+  app:
+    <<: *app
+    restart: always
+
+    command: gunicorn -b 0.0.0.0:9000 -w 2 watercrawl.wsgi:application --access-logfile - --error-logfile - --timeout 3600
+    
+  celery:
+    <<: *app
+    restart: always
+    command: celery -A watercrawl worker -B -l info --statedb=.celery/worker.state
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - frontend.env
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - storage_volume:/var/www/storage
+    depends_on:
+      - frontend
+      - app
+
+  # minio:
+  #   image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+  #   restart: always
+  #   volumes:
+  #     - minio-data:/data
+  #   command: server /data --console-address ":9001"
+  #   env_file:
+  #     - minio.env
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
+  #     interval: 30s
+  #     timeout: 20s
+
+  postgres:
+    image: postgres:17.2-alpine3.21
+    restart: always
+    env_file:
+      - db.env
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+
+  redis:
+    image: redis:latest
+    restart: always
+
+volumes:
+  postgres-db:
+  # minio-data:
+  storage_volume:
+  redis-data:

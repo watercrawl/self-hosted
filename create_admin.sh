@@ -1,0 +1,1 @@
+docker compose exec -it app python manage.py createsuperuser

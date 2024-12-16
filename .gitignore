@@ -1,0 +1,46 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Python-related
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# Environment files
+*.env
+*.env.*
+!.env.example
+!app.env.example
+!db.env.example
+!minio.env.example
+!frontend.env.example
+
+# Backup directories
+.config_backup/
+
+# Logs and debug files
+*.log
+*.out
+*.err
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Docker-related
+*.pid
+docker-compose.override.yml
+
+# Node.js (if used in frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
