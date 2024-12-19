@@ -1,1 +1,1 @@
-FROM watercrawl/frontend
+FROM watercrawl/frontend:0.0.1
