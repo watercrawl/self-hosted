@@ -1,4 +1,4 @@
-FROM watercrawl/watercrawl:latest
+FROM watercrawl/watercrawl:0.0.2
 
 COPY plugin_requirements.txt /var/www/plugin_requirements.txt
 
