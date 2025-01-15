@@ -1,4 +1,5 @@
-FROM watercrawl/watercrawl:latest
+ARG WATER_CRAWL_BACKEND_IMAGE
+FROM ${WATER_CRAWL_BACKEND_IMAGE}
 
 COPY plugin_requirements.txt /var/www/plugin_requirements.txt
 

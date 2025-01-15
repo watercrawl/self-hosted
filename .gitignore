@@ -20,6 +20,7 @@ ENV/
 !db.env.example
 !minio.env.example
 !frontend.env.example
+!playwright.env.example
 
 # Backup directories
 .config_backup/

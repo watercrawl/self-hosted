@@ -111,9 +111,24 @@ safe_replace() {
     fi
 }
 
+add_missing_variables() {
+    local example_file="$1"
+    local env_file="$2"
+
+    while IFS='=' read -r key value; do
+        # Skip lines that start with '#'
+        if [[ $key == \#* || -z $key ]]; then
+            continue
+        fi
+        if ! grep -q "^$key=" "$env_file"; then
+            echo "$key=$value" >> "$env_file"
+        fi
+    done < "$example_file"
+}
+
 # Function to validate required example files
 validate_example_files() {
-    local example_files=("env_templates/app.env.example" "env_templates/db.env.example" "env_templates/minio.env.example" "env_templates/frontend.env.example" "env_templates/.env.example")
+    local example_files=("env_templates/app.env.example" "env_templates/db.env.example" "env_templates/minio.env.example" "env_templates/frontend.env.example" "env_templates/playwright.env.example" "env_templates/.env.example")
 
     for file in "${example_files[@]}"; do
         if [[ ! -f "$file" ]]; then
@@ -125,7 +140,7 @@ validate_example_files() {
 
 # Function to validate environment files
 validate_env_files() {
-    local files=("app.env" "db.env" "frontend.env")
+    local files=("app.env" "db.env" "frontend.env" "playwright.env")
 
     for file in "${files[@]}"; do
         if [[ ! -f "$file" ]]; then
@@ -140,6 +155,7 @@ REINSTALL=false
 DEBUG=false
 DB_FILE_EXISTS=$([ -f db.env ] && echo "true" || echo "false")
 APP_FILE_EXISTS=$([ -f app.env ] && echo "true" || echo "false")
+PLAYWRIGHT_FILE_EXISTS=$([ -f playwright.env ] && echo "true" || echo "false")
 
 for arg in "$@"; do
     case $arg in
@@ -197,13 +213,21 @@ WEBSITE_URL="${WEBSITE_PROTOCOL}://${WEBSITE_DOMAIN}"
 # STORAGE_URL="${STORAGE_PROTOCOL}://${STORAGE_DOMAIN}"
 
 # Copy and configure environment files
-for env in app db frontend; do
+for env in app db frontend playwright; do
     if [[ -f "env_templates/${env}.env.example" && ! -f "${env}.env" ]]; then
         echo "Creating ${env}.env..."
         cp "env_templates/${env}.env.example" "${env}.env"
+    else
+        echo -e "${YELLOW}${env}.env already exists. checking for missing variables...${NC}"
+        add_missing_variables "env_templates/${env}.env.example" "${env}.env"
     fi
 
 done
+
+if [[ -f "env_templates/.env.example" && ! -f ".env" ]]; then
+    echo "Creating .env..."
+    cp "env_templates/.env.example" ".env"
+fi
 
 # Generate secrets and configure app.env
 if [[ -f app.env ]]; then
@@ -240,6 +264,16 @@ fi
 
 if [[ -f frontend.env ]]; then
     safe_replace "frontend.env" "VITE_API_URL" "$WEBSITE_URL"
+fi
+
+if [[ -f playwright.env ]]; then
+    if [[ "$PLAYWRIGHT_FILE_EXISTS" == "true" ]]; then
+        echo -e "\n${YELLOW}playwright.env already exists. Skipping API key generation.${NC}"
+    else
+        AUTH_API_KEY=$(generate_random_string 32)
+        safe_replace "playwright.env" "AUTH_API_KEY" "$AUTH_API_KEY"
+        safe_replace "app.env" "PLAYWRIGHT_API_KEY" "$AUTH_API_KEY"
+    fi
 fi
 
 # Validate environment files
